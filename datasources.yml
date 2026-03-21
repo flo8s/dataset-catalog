@@ -1,0 +1,16 @@
+datasources:
+  - name: articles
+    description: Queriaショーケース記事
+  - name: k_oxon
+    description: K-Oxon データ
+  - name: tsukuba
+    description: つくば市データセット
+  - name: zipcode
+    description: 郵便番号データセット
+  - name: e_stat
+    description: e-Stat 統計データ
+  - name: reinfolib
+    description: 不動産情報ライブラリ
+  - name: catalog
+    description: Queriaカタログ
+    self: true
