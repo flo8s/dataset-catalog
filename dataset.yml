@@ -3,6 +3,7 @@ title: "Queriaカタログ"
 description: "Queriaで公開している全データセット・テーブルのメタデータ"
 tags: ["カタログ", "Queria"]
 public_url: "https://data.queria.io"
+repository_url: "https://github.com/flo8s/dataset-catalog"
 s3_url: "{% if env_var('S3_BUCKET', '') %}s3://{{ env_var('S3_BUCKET') }}{% endif %}"
 schemas:
   main:

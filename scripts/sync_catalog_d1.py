@@ -77,12 +77,12 @@ def generate_catalog_sql() -> str:
     # --- Datasets ---
     datasets = conn.execute(
         f"""
-        SELECT datasource, title, description, cover, ducklake_url, tags_json
+        SELECT datasource, title, description, cover, ducklake_url, repository_url, tags_json
         FROM {CATALOG_ALIAS}.main.mart_datasets
         ORDER BY datasource
         """
     ).fetchall()
-    ds_columns = ["datasource", "title", "description", "cover", "ducklake_url", "tags_json"]
+    ds_columns = ["datasource", "title", "description", "cover", "ducklake_url", "repository_url", "tags_json"]
     existing_datasources: set[str] = set()
 
     for row in datasets:
@@ -98,6 +98,7 @@ def generate_catalog_sql() -> str:
                     "description": sql_val(r["description"]),
                     "cover": sql_val(r["cover"]),
                     "ducklake_url": sql_val(r["ducklake_url"]),
+                    "repository_url": sql_val(r["repository_url"]),
                     "tags": json_val(tags),
                 },
             )
@@ -154,7 +155,7 @@ def generate_catalog_sql() -> str:
         f"""
         SELECT datasource, node_id, name, schema_name, description,
                materialized AS type, title, license, license_url,
-               source_url, is_published, tags_json, sql
+               source_url, is_published, tags_json, sql, file_path
         FROM {CATALOG_ALIAS}.main.mart_tables
         ORDER BY datasource, node_index
         """
@@ -162,7 +163,7 @@ def generate_catalog_sql() -> str:
     tbl_columns = [
         "datasource", "node_id", "name", "schema_name", "description",
         "type", "title", "license", "license_url", "source_url",
-        "is_published", "tags_json", "sql",
+        "is_published", "tags_json", "sql", "file_path",
     ]
     for row in tables:
         r = dict(zip(tbl_columns, row))
@@ -185,6 +186,7 @@ def generate_catalog_sql() -> str:
                     "is_published": bool_val(r["is_published"]),
                     "tags": json_val(tags),
                     "sql": sql_val(r["sql"]),
+                    "file_path": sql_val(r["file_path"]),
                 },
             )
         )

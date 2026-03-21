@@ -38,5 +38,6 @@ SELECT
     COALESCE(CAST(tbl->>'$.published' AS BOOLEAN), false) AS is_published,
     tbl->'$.tags' AS tags_json,
     tbl->>'$.sql' AS sql,
+    tbl->>'$.file_path' AS file_path,
     tbl->'$.columns' AS columns_json
 FROM tables_expanded

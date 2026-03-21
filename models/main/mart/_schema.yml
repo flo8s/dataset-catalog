@@ -27,6 +27,9 @@ models:
       - name: ducklake_url
         description: DuckLake の公開 URL
         data_type: VARCHAR
+      - name: repository_url
+        description: GitHub リポジトリ URL
+        data_type: VARCHAR
       - name: tags_json
         description: タグ（JSON 配列）
         data_type: JSON
@@ -107,6 +110,9 @@ models:
         data_type: JSON
       - name: sql
         description: コンパイル済み SQL
+        data_type: VARCHAR
+      - name: file_path
+        description: モデルのファイルパス
         data_type: VARCHAR
 
   - name: mart_columns

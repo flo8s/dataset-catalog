@@ -12,5 +12,6 @@ SELECT
     source_url,
     is_published,
     tags_json,
-    sql
+    sql,
+    file_path
 FROM {{ ref('stg_models') }}

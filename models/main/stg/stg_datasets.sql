@@ -6,6 +6,7 @@ SELECT
     description,
     cover,
     ducklake_url,
+    repository_url,
     tags AS tags_json,
     readme
 FROM {{ ref('stg_catalog') }}
