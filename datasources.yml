@@ -11,6 +11,8 @@ datasources:
     description: e-Stat 統計データ
   - name: reinfolib
     description: 不動産情報ライブラリ
+  - name: calendar
+    description: 日本の暦データ
   - name: catalog
     description: Queriaカタログ
     self: true

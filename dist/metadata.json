@@ -1,0 +1,19 @@
+{
+  "title": "Queriaカタログ",
+  "description": "Queriaで公開している全データセット・テーブルのメタデータ",
+  "tags": [
+    "カタログ",
+    "Queria"
+  ],
+  "ducklake_url": "https://data.queria.io/catalog/ducklake.duckdb",
+  "schemas": {
+    "main": {
+      "title": "メイン",
+      "tables": []
+    }
+  },
+  "lineage": {
+    "parent_map": {},
+    "nodes": {}
+  }
+}

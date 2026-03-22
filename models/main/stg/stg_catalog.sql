@@ -11,4 +11,8 @@ SELECT * FROM {{ ref('raw_zipcode') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_e_stat') }}
 UNION ALL
+SELECT * FROM {{ ref('raw_reinfolib') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_calendar') }}
+UNION ALL
 SELECT * FROM {{ ref('raw_catalog') }}

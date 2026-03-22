@@ -11,5 +11,9 @@ models:
   description: 郵便番号データセット
 - name: raw_e_stat
   description: e-Stat 統計データ
+- name: raw_reinfolib
+  description: 不動産情報ライブラリ
+- name: raw_calendar
+  description: 日本の暦データ
 - name: raw_catalog
   description: Queriaカタログ
