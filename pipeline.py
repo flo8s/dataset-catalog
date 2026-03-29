@@ -1,9 +1,14 @@
-"""generate_sources + dbt ビルド + メタデータ生成パイプライン。"""
+"""artifacts 取得 + generate_sources + dbt ビルドパイプライン。"""
 
 from dbt.cli.main import dbtRunner
 
 
 def main():
+    # 各データセットの dbt artifacts を S3 から取得し、メタデータ JSON を生成
+    from scripts.build_metadata import main as build
+
+    build()
+
     # ソース定義を自動生成
     from generate_sources import main as gen
 
