@@ -1,25 +1,20 @@
 """Auto-generate catalog dbt source files from datasources.yml.
 
 Generated files:
-  - models/raw/raw_{name}.sql
-  - models/raw/_schema.yml
-  - models/stg/stg_catalog.sql
-  - dist/metadata.json (stub, only if missing)
+  - models/main/raw/raw_{name}.sql
+  - models/main/raw/_schema.yml
+  - models/main/stg/stg_catalog.sql
 """
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
 import yaml
 
-from fdl.config_schema import load_dataset_config
-
 CATALOG_DIR = Path(__file__).resolve().parent
 DATASOURCES_YML = CATALOG_DIR / "datasources.yml"
-DIST_DIR = CATALOG_DIR / "dist"
 RAW_DIR = CATALOG_DIR / "models" / "main" / "raw"
 STG_DIR = CATALOG_DIR / "models" / "main" / "stg"
 
@@ -34,8 +29,6 @@ def load_datasources() -> list[dict]:
 
 def generate_raw_sql(ds: dict) -> str:
     name = ds["name"]
-    if ds.get("self"):
-        return f"{GENERATED_HEADER}\n{{{{ read_local_metadata_json('{name}') }}}}\n"
     return f"{GENERATED_HEADER}\n{{{{ read_metadata_json('{name}') }}}}\n"
 
 
@@ -58,35 +51,6 @@ def generate_stg_catalog(datasources: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def ensure_metadata_stub() -> None:
-    """Generate a stub metadata.json if dist/metadata.json doesn't exist."""
-    metadata_path = DIST_DIR / "metadata.json"
-    if metadata_path.exists():
-        return
-
-    config = load_dataset_config(CATALOG_DIR)
-
-    schemas = {}
-    for schema_name, schema_config in config.schemas.items():
-        schemas[schema_name] = {
-            "title": schema_config.title,
-            "tables": [],
-        }
-
-    stub = {
-        "title": config.title,
-        "description": config.description,
-        "tags": config.tags,
-        "ducklake_url": config.ducklake_url,
-        "schemas": schemas,
-        "lineage": {"parent_map": {}, "nodes": {}},
-    }
-
-    DIST_DIR.mkdir(parents=True, exist_ok=True)
-    with open(metadata_path, "w") as f:
-        json.dump(stub, f, ensure_ascii=False, indent=2)
-    print(f"  generated stub: {metadata_path.relative_to(CATALOG_DIR)}")
-
 
 def warn_stale_files(datasources: list[dict]) -> None:
     expected = {f"raw_{ds['name']}.sql" for ds in datasources}
@@ -103,8 +67,6 @@ def main() -> None:
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     STG_DIR.mkdir(parents=True, exist_ok=True)
-
-    ensure_metadata_stub()
 
     for ds in datasources:
         path = RAW_DIR / f"raw_{ds['name']}.sql"

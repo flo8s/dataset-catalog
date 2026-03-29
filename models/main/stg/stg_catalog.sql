@@ -14,5 +14,3 @@ UNION ALL
 SELECT * FROM {{ ref('raw_reinfolib') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_calendar') }}
-UNION ALL
-SELECT * FROM {{ ref('raw_catalog') }}

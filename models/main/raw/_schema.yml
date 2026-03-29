@@ -15,5 +15,3 @@ models:
   description: 不動産情報ライブラリ
 - name: raw_calendar
   description: 日本の暦データ
-- name: raw_catalog
-  description: Queriaカタログ
