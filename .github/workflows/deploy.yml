@@ -42,7 +42,7 @@ jobs:
         run: uv run fdl pull default
 
       - name: Run pipeline
-        run: uv run fdl run default -- python pipeline.py
+        run: uv run fdl run default -- python main.py
 
       - name: Push catalog
         if: always()
