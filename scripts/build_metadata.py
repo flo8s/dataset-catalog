@@ -238,16 +238,76 @@ def process_datasource(ds: dict, client, bucket: str) -> bool:
     return True
 
 
+def process_datasource_local(ds: dict, base_dir: Path) -> bool:
+    """Process a datasource from local filesystem instead of S3."""
+    name = ds["name"]
+    ds_dir = base_dir / name
+    print(f"  {name} (local):")
+
+    manifest_path = ds_dir / "dbt" / "manifest.json"
+    if not manifest_path.exists():
+        print(f"    SKIP: {manifest_path} not found")
+        return False
+
+    toml_path = ds_dir / "fdl.toml"
+    if not toml_path.exists():
+        print(f"    SKIP: {toml_path} not found")
+        return False
+
+    catalog_path = ds_dir / "dbt" / "catalog.json"
+
+    config = tomllib.loads(toml_path.read_text())
+    meta = config.get("meta", {})
+    target = config.get("targets", {}).get("local", {})
+    public_url = target.get("public_url", "http://localhost:4001")
+
+    manifest = parse_manifest(manifest_path.read_text())
+    catalog = (
+        parse_catalog(catalog_path.read_text()) if catalog_path.exists() else None
+    )
+
+    metadata = build_metadata(name, meta, public_url, manifest, catalog)
+
+    output_path = OUTPUT_DIR / f"{name}.json"
+    with open(output_path, "w") as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+    total_tables = sum(len(s["tables"]) for s in metadata["schemas"].values())
+    print(f"    {total_tables} tables → {output_path.name}")
+    return True
+
+
+def _detect_local_base_dir() -> Path | None:
+    """Detect local mode from FDL_STORAGE environment variable.
+
+    When run via `fdl run local`, FDL_STORAGE is set to a local path
+    like ~/.local/share/fdl/catalog. The parent directory is the base
+    where all datasets are stored.
+    """
+    storage = os.environ.get("FDL_STORAGE", "")
+    if storage and not storage.startswith("s3://"):
+        return Path(storage).parent
+    return None
+
+
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     datasources = load_datasources()
-    client = create_s3_client()
-    bucket = os.environ["FDL_S3_BUCKET"]
+    base_dir = _detect_local_base_dir()
     ok = 0
-    for ds in datasources:
-        if process_datasource(ds, client, bucket):
-            ok += 1
+
+    if base_dir is not None:
+        print(f"Local mode: reading from {base_dir}")
+        for ds in datasources:
+            if process_datasource_local(ds, base_dir):
+                ok += 1
+    else:
+        client = create_s3_client()
+        bucket = os.environ["FDL_S3_BUCKET"]
+        for ds in datasources:
+            if process_datasource(ds, client, bucket):
+                ok += 1
 
     print(f"Built metadata for {ok}/{len(datasources)} datasources")
 
