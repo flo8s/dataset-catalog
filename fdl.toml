@@ -7,6 +7,10 @@ s3_endpoint = "${FDL_S3_ENDPOINT}"
 s3_access_key_id = "${FDL_S3_ACCESS_KEY_ID}"
 s3_secret_access_key = "${FDL_S3_SECRET_ACCESS_KEY}"
 
+[targets.local]
+url = "~/.local/share/fdl"
+public_url = "http://localhost:4001"
+
 [meta]
 title = "Queriaカタログ"
 description = "Queriaで公開している全データセット・テーブルのメタデータ"
