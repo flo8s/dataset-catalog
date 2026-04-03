@@ -45,7 +45,6 @@ jobs:
         run: uv run fdl run default -- python main.py
 
       - name: Push catalog
-        if: always()
         run: uv run fdl push default
 
       - name: Sync catalog to D1
