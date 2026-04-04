@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import urllib.request
 
 import duckdb
 
@@ -83,11 +82,9 @@ def generate_catalog_sql() -> str:
         """
     ).fetchall()
     ds_columns = ["datasource", "title", "description", "cover", "ducklake_url", "repository_url", "tags_json"]
-    existing_datasources: set[str] = set()
 
     for row in datasets:
         r = dict(zip(ds_columns, row))
-        existing_datasources.add(str(r["datasource"]))
         tags = json.loads(str(r["tags_json"])) if r["tags_json"] else None
         statements.append(
             build_insert(
@@ -228,89 +225,6 @@ def generate_catalog_sql() -> str:
         )
 
     conn.close()
-
-    # --- catalog 自体のメタデータ (R2 metadata.json) ---
-    metadata_url = f"{R2_PUBLIC_URL}/catalog/metadata.json"
-    req = urllib.request.Request(metadata_url, headers={"User-Agent": "queria-sync"})
-    with urllib.request.urlopen(req) as resp:
-        meta = json.loads(resp.read())
-
-    if CATALOG_ALIAS not in existing_datasources:
-        meta_tags = meta.get("tags") or None
-        if meta_tags and len(meta_tags) == 0:
-            meta_tags = None
-        statements.append(
-            build_insert(
-                "catalog_datasets",
-                {
-                    "datasource": sql_val(CATALOG_ALIAS),
-                    "title": sql_val(meta["title"]),
-                    "description": sql_val(meta["description"]),
-                    "cover": sql_val(meta.get("cover")),
-                    "ducklake_url": sql_val(meta["ducklake_url"]),
-                    "tags": json_val(meta_tags),
-                },
-            )
-        )
-
-        for schema_name, schema in meta.get("schemas", {}).items():
-            schema_id = f"{CATALOG_ALIAS}/{schema_name}"
-            statements.append(
-                build_insert(
-                    "catalog_schemas",
-                    {
-                        "id": sql_val(schema_id),
-                        "datasource": sql_val(CATALOG_ALIAS),
-                        "schema_name": sql_val(schema_name),
-                        "title": sql_val(schema["title"]),
-                    },
-                )
-            )
-
-            for t in schema.get("tables", []):
-                table_id = f"{CATALOG_ALIAS}/{schema_name}/{t['name']}"
-                t_tags = t.get("tags") or None
-                if t_tags and len(t_tags) == 0:
-                    t_tags = None
-                statements.append(
-                    build_insert(
-                        "catalog_tables",
-                        {
-                            "id": sql_val(table_id),
-                            "datasource": sql_val(CATALOG_ALIAS),
-                            "schema_name": sql_val(schema_name),
-                            "name": sql_val(t["name"]),
-                            "title": sql_val(t["title"]),
-                            "description": sql_val(t["description"]),
-                            "type": sql_val(t.get("materialized")),
-                            "license": sql_val(t.get("license")),
-                            "license_url": sql_val(t.get("license_url")),
-                            "source_url": sql_val(t.get("source_url")),
-                            "is_published": bool_val(t.get("published")),
-                            "tags": json_val(t_tags),
-                            "sql": sql_val(t.get("sql")),
-                        },
-                    )
-                )
-
-                for i, c in enumerate(t.get("columns", [])):
-                    col_id = f"{CATALOG_ALIAS}/{schema_name}/{t['name']}/{c['name']}"
-                    statements.append(
-                        build_insert(
-                            "catalog_columns",
-                            {
-                                "id": sql_val(col_id),
-                                "datasource": sql_val(CATALOG_ALIAS),
-                                "schema_name": sql_val(schema_name),
-                                "table_name": sql_val(t["name"]),
-                                "column_name": sql_val(c["name"]),
-                                "title": sql_val(c.get("title")),
-                                "description": sql_val(c.get("description", "")),
-                                "data_type": sql_val(c.get("data_type")),
-                                "column_index": str(i),
-                            },
-                        )
-                    )
 
     return "\n".join(["-- Catalog data", *statements])
 
