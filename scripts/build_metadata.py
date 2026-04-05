@@ -96,16 +96,19 @@ def build_columns(node: Model, catalog_columns: dict) -> list[dict]:
     ]
 
 
-def build_model_info(node: Model, catalog_columns: dict) -> dict:
+def build_model_info(
+    node: Model, catalog_columns: dict, defaults: dict | None = None
+) -> dict:
     meta = node.meta
+    d = defaults or {}
     return {
         "name": node.name,
         "title": meta.get("title", ""),
         "description": node.description,
         "tags": meta.get("tags", []),
-        "license": meta.get("license", ""),
-        "license_url": meta.get("license_url", ""),
-        "source_url": meta.get("source_url", ""),
+        "license": meta.get("license") or d.get("license", ""),
+        "license_url": meta.get("license_url") or d.get("license_url", ""),
+        "source_url": meta.get("source_url") or d.get("source_url", ""),
         "published": meta.get("published", False),
         "materialized": node.config.materialized,
         "columns": build_columns(node, catalog_columns),
@@ -115,8 +118,17 @@ def build_model_info(node: Model, catalog_columns: dict) -> dict:
 
 
 def extract_models(
-    manifest: WritableManifest, catalog: CatalogArtifact | None, datasource: str
+    manifest: WritableManifest,
+    catalog: CatalogArtifact | None,
+    datasource: str,
+    meta: dict | None = None,
 ) -> dict[str, list[dict]]:
+    meta = meta or {}
+    dataset_defaults = {
+        k: meta[k] for k in ("license", "license_url", "source_url") if k in meta
+    }
+    schema_configs = meta.get("schemas", {})
+
     tables_by_schema: dict[str, list[dict]] = defaultdict(list)
     for node_id, node in manifest.nodes.items():
         if not isinstance(node, Model):
@@ -125,7 +137,14 @@ def extract_models(
             continue
         catalog_node = catalog.nodes.get(node_id) if catalog else None
         catalog_columns = catalog_node.columns if catalog_node else {}
-        tables_by_schema[node.schema].append(build_model_info(node, catalog_columns))
+        defaults = {**dataset_defaults, **{
+            k: v
+            for k, v in schema_configs.get(node.schema, {}).items()
+            if k in ("license", "license_url", "source_url")
+        }}
+        tables_by_schema[node.schema].append(
+            build_model_info(node, catalog_columns, defaults)
+        )
     return dict(tables_by_schema)
 
 
@@ -176,7 +195,7 @@ def build_metadata(
     readme: str | None = None,
 ) -> dict:
     ducklake_url = f"{public_url}/{datasource}/ducklake.duckdb"
-    tables_by_schema = extract_models(manifest, catalog, datasource)
+    tables_by_schema = extract_models(manifest, catalog, datasource, meta)
     lineage = extract_lineage(manifest, datasource)
 
     schemas = {}
