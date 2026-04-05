@@ -1,4 +1,5 @@
 name = "catalog"
+command = "python main.py"
 
 [targets.default]
 url = "s3://${FDL_S3_BUCKET}"
