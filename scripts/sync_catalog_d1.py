@@ -76,12 +76,12 @@ def generate_catalog_sql() -> str:
     # --- Datasets ---
     datasets = conn.execute(
         f"""
-        SELECT datasource, title, description, cover, ducklake_url, repository_url, tags_json
+        SELECT datasource, title, description, cover, ducklake_url, repository_url, schedule, tags_json
         FROM {CATALOG_ALIAS}.main.mart_datasets
         ORDER BY datasource
         """
     ).fetchall()
-    ds_columns = ["datasource", "title", "description", "cover", "ducklake_url", "repository_url", "tags_json"]
+    ds_columns = ["datasource", "title", "description", "cover", "ducklake_url", "repository_url", "schedule", "tags_json"]
 
     for row in datasets:
         r = dict(zip(ds_columns, row))
@@ -96,6 +96,7 @@ def generate_catalog_sql() -> str:
                     "cover": sql_val(r["cover"]),
                     "ducklake_url": sql_val(r["ducklake_url"]),
                     "repository_url": sql_val(r["repository_url"]),
+                    "schedule": sql_val(r["schedule"]),
                     "tags": json_val(tags),
                 },
             )

@@ -215,6 +215,7 @@ def build_metadata(
         "tags": meta.get("tags", []),
         "ducklake_url": ducklake_url,
         "repository_url": meta.get("repository_url", ""),
+        "schedule": meta.get("schedule", ""),
         "schemas": schemas,
         "lineage": lineage,
     }

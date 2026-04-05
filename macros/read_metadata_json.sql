@@ -10,6 +10,7 @@ FROM read_json(
         tags: 'JSON',
         ducklake_url: 'VARCHAR',
         repository_url: 'VARCHAR',
+        schedule: 'VARCHAR',
         schemas: 'JSON',
         dependencies: 'JSON',
         lineage: 'JSON',
