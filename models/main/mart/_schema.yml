@@ -30,6 +30,9 @@ models:
       - name: repository_url
         description: GitHub リポジトリ URL
         data_type: VARCHAR
+      - name: schedule
+        description: 更新スケジュール (daily, weekly, monthly, yearly)
+        data_type: VARCHAR
       - name: tags_json
         description: タグ（JSON 配列）
         data_type: JSON
