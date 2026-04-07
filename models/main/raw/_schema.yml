@@ -3,8 +3,8 @@ version: 2
 models:
 - name: raw_articles
   description: Queriaショーケース記事
-- name: raw_k_oxon
-  description: K-Oxon データ
+- name: raw_nlftp
+  description: 国土数値情報
 - name: raw_tsukuba
   description: つくば市データセット
 - name: raw_zipcode
@@ -15,3 +15,5 @@ models:
   description: 不動産情報ライブラリ
 - name: raw_calendar
   description: 日本の暦データ
+- name: raw_address_br
+  description: アドレス・ベース・レジストリ

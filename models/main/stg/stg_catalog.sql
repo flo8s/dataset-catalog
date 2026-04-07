@@ -3,7 +3,7 @@
 
 SELECT * FROM {{ ref('raw_articles') }}
 UNION ALL
-SELECT * FROM {{ ref('raw_k_oxon') }}
+SELECT * FROM {{ ref('raw_nlftp') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_tsukuba') }}
 UNION ALL
@@ -14,3 +14,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_reinfolib') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_calendar') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_address_br') }}

@@ -1,8 +1,8 @@
 datasources:
   - name: articles
     description: Queriaショーケース記事
-  - name: k_oxon
-    description: K-Oxon データ
+  - name: nlftp
+    description: 国土数値情報
   - name: tsukuba
     description: つくば市データセット
   - name: zipcode
@@ -13,3 +13,5 @@ datasources:
     description: 不動産情報ライブラリ
   - name: calendar
     description: 日本の暦データ
+  - name: address_br
+    description: アドレス・ベース・レジストリ
