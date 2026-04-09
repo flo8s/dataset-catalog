@@ -97,11 +97,14 @@ def build_columns(node: Model, catalog_columns: dict) -> list[dict]:
 
 
 def build_model_info(
-    node: Model, catalog_columns: dict, defaults: dict | None = None
+    node: Model,
+    catalog_columns: dict,
+    defaults: dict | None = None,
+    semantic: dict | None = None,
 ) -> dict:
     meta = node.meta
     d = defaults or {}
-    return {
+    info = {
         "name": node.name,
         "title": meta.get("title", ""),
         "description": node.description,
@@ -115,6 +118,48 @@ def build_model_info(
         "sql": (node.compiled_code or "").strip() or None,
         "file_path": node.original_file_path or "",
     }
+    if semantic:
+        info["semantic"] = semantic
+    return info
+
+
+def extract_semantic_info(semantic_manifest: dict | None) -> dict[str, dict]:
+    """Build a mapping from model name to semantic info."""
+    if not semantic_manifest:
+        return {}
+    result: dict[str, dict] = {}
+    for sm in semantic_manifest.get("semantic_models", []):
+        name = sm["name"]
+        result[name] = {
+            "entities": [
+                {
+                    "name": e["name"],
+                    "type": e["type"],
+                    "expr": e.get("expr") or e["name"],
+                    "description": e.get("description") or "",
+                }
+                for e in sm.get("entities", [])
+            ],
+            "dimensions": [
+                {
+                    "name": d["name"],
+                    "type": d["type"],
+                    "expr": d.get("expr") or d["name"],
+                    "description": d.get("description") or "",
+                }
+                for d in sm.get("dimensions", [])
+            ],
+            "measures": [
+                {
+                    "name": m["name"],
+                    "agg": m["agg"],
+                    "expr": m.get("expr") or m["name"],
+                    "description": m.get("description") or "",
+                }
+                for m in sm.get("measures", [])
+            ],
+        }
+    return result
 
 
 def extract_models(
@@ -122,12 +167,14 @@ def extract_models(
     catalog: CatalogArtifact | None,
     datasource: str,
     meta: dict | None = None,
+    semantic_manifest: dict | None = None,
 ) -> dict[str, list[dict]]:
     meta = meta or {}
     dataset_defaults = {
         k: meta[k] for k in ("license", "license_url", "source_url") if k in meta
     }
     schema_configs = meta.get("schemas", {})
+    semantic_by_model = extract_semantic_info(semantic_manifest)
 
     tables_by_schema: dict[str, list[dict]] = defaultdict(list)
     for node_id, node in manifest.nodes.items():
@@ -143,7 +190,10 @@ def extract_models(
             if k in ("license", "license_url", "source_url")
         }}
         tables_by_schema[node.schema].append(
-            build_model_info(node, catalog_columns, defaults)
+            build_model_info(
+                node, catalog_columns, defaults,
+                semantic=semantic_by_model.get(node.name),
+            )
         )
     return dict(tables_by_schema)
 
@@ -193,9 +243,12 @@ def build_metadata(
     manifest: WritableManifest,
     catalog: CatalogArtifact | None,
     readme: str | None = None,
+    semantic_manifest: dict | None = None,
 ) -> dict:
     ducklake_url = f"{public_url}/{datasource}/ducklake.duckdb"
-    tables_by_schema = extract_models(manifest, catalog, datasource, meta)
+    tables_by_schema = extract_models(
+        manifest, catalog, datasource, meta, semantic_manifest
+    )
     lineage = extract_lineage(manifest, datasource)
 
     schemas = {}
@@ -234,6 +287,7 @@ def process_datasource(ds: dict, client, bucket: str) -> bool:
         return False
 
     catalog_raw = s3_get(client, bucket, f"{name}/dbt/catalog.json")
+    semantic_raw = s3_get(client, bucket, f"{name}/dbt/semantic_manifest.json")
     toml_raw = s3_get(client, bucket, f"{name}/fdl.toml")
     if not toml_raw:
         print(f"    SKIP: fdl.toml not available")
@@ -246,8 +300,14 @@ def process_datasource(ds: dict, client, bucket: str) -> bool:
 
     manifest = parse_manifest(manifest_raw.decode())
     catalog = parse_catalog(catalog_raw.decode()) if catalog_raw else None
+    semantic_manifest = (
+        json.loads(semantic_raw.decode()) if semantic_raw else None
+    )
 
-    metadata = build_metadata(name, meta, public_url, manifest, catalog)
+    metadata = build_metadata(
+        name, meta, public_url, manifest, catalog,
+        semantic_manifest=semantic_manifest,
+    )
 
     output_path = OUTPUT_DIR / f"{name}.json"
     with open(output_path, "w") as f:
@@ -275,6 +335,7 @@ def process_datasource_local(ds: dict, base_dir: Path) -> bool:
         return False
 
     catalog_path = ds_dir / "dbt" / "catalog.json"
+    semantic_path = ds_dir / "dbt" / "semantic_manifest.json"
 
     config = tomllib.loads(toml_path.read_text())
     meta = config.get("meta", {})
@@ -285,8 +346,14 @@ def process_datasource_local(ds: dict, base_dir: Path) -> bool:
     catalog = (
         parse_catalog(catalog_path.read_text()) if catalog_path.exists() else None
     )
+    semantic_manifest = (
+        json.loads(semantic_path.read_text()) if semantic_path.exists() else None
+    )
 
-    metadata = build_metadata(name, meta, public_url, manifest, catalog)
+    metadata = build_metadata(
+        name, meta, public_url, manifest, catalog,
+        semantic_manifest=semantic_manifest,
+    )
 
     output_path = OUTPUT_DIR / f"{name}.json"
     with open(output_path, "w") as f:
