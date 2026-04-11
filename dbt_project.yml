@@ -14,9 +14,6 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-vars:
-  storage_base_url: "{{ env_var('STORAGE_BASE_URL', 'https://data.queria.io') }}"
-
 models:
   catalog:
     +database: catalog

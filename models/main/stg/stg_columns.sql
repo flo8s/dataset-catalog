@@ -1,51 +1,56 @@
 {{ config(materialized='view') }}
 
-WITH schemas_expanded AS (
+-- manifest.nodes.*.columns を展開 + catalog.json の実行時型情報で補強
+
+WITH node_columns AS (
     SELECT
-        r.datasource,
-        s.schema_name,
-        json_extract(r.schemas, '$.' || s.schema_name || '.tables') AS tables_json
-    FROM {{ ref('stg_catalog') }} r,
+        n.datasource,
+        n.unique_id,
+        n.name AS table_name,
+        c.col_name,
+        n.columns_json->c.col_name AS col
+    FROM {{ ref('stg_nodes') }} n,
     LATERAL (
-        SELECT UNNEST(json_keys(r.schemas)) AS schema_name
-    ) s
-    WHERE json_type(json_extract(r.schemas, '$.' || s.schema_name || '.tables')) = 'ARRAY'
-),
-tables_expanded AS (
-    SELECT
-        se.datasource,
-        json_extract(se.tables_json, '$[' || t.table_index || ']') AS tbl
-    FROM schemas_expanded se,
-    LATERAL (
-        SELECT UNNEST(generate_series(0::BIGINT, json_array_length(se.tables_json)::BIGINT - 1)) AS table_index
-    ) t
-),
-columns_expanded AS (
-    SELECT
-        te.datasource,
-        'model.' || te.datasource || '.' || (te.tbl->>'$.name') AS node_id,
-        te.tbl->>'$.name' AS table_name,
-        (c.col_index + 1)::INTEGER AS column_index,
-        json_extract(te.tbl, '$.columns[' || c.col_index || ']') AS col
-    FROM tables_expanded te,
-    LATERAL (
-        SELECT UNNEST(generate_series(
-            0::BIGINT,
-            json_array_length(json_extract(te.tbl, '$.columns'))::BIGINT - 1
-        )) AS col_index
+        SELECT UNNEST(json_keys(n.columns_json)) AS col_name
     ) c
-    WHERE json_type(json_extract(te.tbl, '$.columns')) = 'ARRAY'
-      AND json_array_length(json_extract(te.tbl, '$.columns')) > 0
+    WHERE n.columns_json IS NOT NULL
+      AND json_type(n.columns_json) = 'OBJECT'
+      AND json_array_length(json_keys(n.columns_json)::JSON) > 0
+),
+-- catalog.json のカラム情報
+catalog_types AS (
+    SELECT
+        cat.datasource,
+        k.unique_id,
+        col.col_name,
+        (cat.nodes->k.unique_id->'columns'->col.col_name)->>'type' AS catalog_type,
+        CAST((cat.nodes->k.unique_id->'columns'->col.col_name)->>'index' AS INTEGER) AS catalog_index
+    FROM {{ ref('stg_all_catalogs') }} cat,
+    LATERAL (
+        SELECT UNNEST(json_keys(cat.nodes)) AS unique_id
+    ) k,
+    LATERAL (
+        SELECT UNNEST(json_keys(
+            cat.nodes->k.unique_id->'columns'
+        )) AS col_name
+    ) col
+    WHERE json_type(cat.nodes->k.unique_id->'columns') = 'OBJECT'
 )
 
 SELECT
-    datasource,
-    node_id,
-    table_name,
-    col->>'$.name' AS column_name,
-    column_index,
-    COALESCE(col->>'$.title', '') AS title,
-    col->>'$.description' AS description,
-    col->>'$.data_type' AS data_type,
-    CAST(COALESCE(col->>'$.nullable', 'true') AS BOOLEAN) AS nullable
-FROM columns_expanded
+    nc.datasource,
+    nc.unique_id,
+    nc.table_name,
+    nc.col_name AS column_name,
+    COALESCE(ct.catalog_index, ROW_NUMBER() OVER (PARTITION BY nc.unique_id ORDER BY nc.col_name))::INTEGER AS column_index,
+    COALESCE(nc.col->'meta'->>'title', '') AS title,
+    nc.col->>'description' AS description,
+    COALESCE(ct.catalog_type, nc.col->>'data_type', '') AS data_type,
+    nc.col->'meta' AS meta_json,
+    nc.col->'constraints' AS constraints_json,
+    true AS nullable  -- manifest/catalog does not expose nullable; default to true
+FROM node_columns nc
+LEFT JOIN catalog_types ct
+    ON nc.datasource = ct.datasource
+    AND nc.unique_id = ct.unique_id
+    AND nc.col_name = ct.col_name

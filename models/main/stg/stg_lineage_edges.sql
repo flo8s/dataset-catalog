@@ -1,34 +1,26 @@
 {{ config(materialized='view') }}
 
-WITH parent_map_expanded AS (
-    SELECT
-        r.datasource,
-        json_keys(r.lineage->'$.parent_map') AS keys
-    FROM {{ ref('stg_catalog') }} r
-    WHERE r.lineage IS NOT NULL
-),
+-- manifest.parent_map を edge リストに展開
+-- フルの unique_id (例: "model.e_stat.small_area") で保持
 
-keys_unnested AS (
+WITH parent_map_entries AS (
     SELECT
-        datasource,
-        UNNEST(keys) AS child
-    FROM parent_map_expanded
-),
-
-catalog_ref AS (
-    SELECT datasource, lineage
-    FROM {{ ref('stg_catalog') }}
-    WHERE lineage IS NOT NULL
+        m.datasource,
+        k.child_unique_id,
+        m.parent_map->k.child_unique_id AS parents_json
+    FROM {{ ref('stg_all_manifests') }} m,
+    LATERAL (
+        SELECT UNNEST(json_keys(m.parent_map)) AS child_unique_id
+    ) k
 )
 
 SELECT
-    k.datasource,
-    k.child,
-    p.parent::VARCHAR AS parent
-FROM keys_unnested k
-JOIN catalog_ref r ON k.datasource = r.datasource,
+    pe.datasource,
+    pe.child_unique_id,
+    p.parent_unique_id::VARCHAR AS parent_unique_id
+FROM parent_map_entries pe,
 LATERAL (
     SELECT UNNEST(
-        from_json(r.lineage->'$.parent_map'->k.child, '["VARCHAR"]')
-    ) AS parent
+        from_json(pe.parents_json, '["VARCHAR"]')
+    ) AS parent_unique_id
 ) p

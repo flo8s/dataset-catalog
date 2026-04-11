@@ -1,20 +1,12 @@
 {{ config(materialized='view') }}
 
-WITH deps_raw AS (
-    SELECT
-        datasource,
-        dependencies AS deps_json,
-        json_array_length(dependencies)::BIGINT AS deps_len
-    FROM {{ ref('stg_catalog') }}
-    WHERE json_type(dependencies) = 'ARRAY'
-      AND json_array_length(dependencies) > 0
-)
-
+-- データセット間の依存関係（空テーブル）。
+-- dbt の sources / refs は同一プロジェクト内に閉じており、cross-dataset ref
+-- は存在しない（dbt mesh 非使用）。将来的に fdl.toml の [dependencies]
+-- セクションから取得するか、DuckLake の ATTACH 宣言を解析するなどの実装が必要。
+-- 下流（mart_dependencies, web の OG 画像生成）は 0 件で問題なく動作する。
 SELECT
-    d.datasource,
-    json_extract_string(d.deps_json, '$[' || i.idx || '].alias') AS alias,
-    json_extract_string(d.deps_json, '$[' || i.idx || '].ducklake_url') AS ducklake_url
-FROM deps_raw d,
-LATERAL (
-    SELECT UNNEST(generate_series(0::BIGINT, d.deps_len - 1)) AS idx
-) i
+    ''::VARCHAR AS datasource,
+    ''::VARCHAR AS alias,
+    ''::VARCHAR AS ducklake_url
+WHERE false

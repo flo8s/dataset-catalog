@@ -1,53 +1,59 @@
-WITH tags_agg AS (
+WITH published_models AS (
+    SELECT *
+    FROM {{ ref('mart_nodes') }}
+    WHERE resource_type = 'model' AND is_published = true
+),
+
+tags_agg AS (
     SELECT
-        t.datasource,
-        t.name,
+        n.datasource,
+        n.unique_id,
         STRING_AGG(tag.value::VARCHAR, ' ') AS tags_text
-    FROM {{ ref('mart_tables') }} t,
+    FROM published_models n,
         LATERAL UNNEST(
-            CASE WHEN t.tags_json IS NOT NULL
-                 THEN CAST(t.tags_json AS VARCHAR[])
+            CASE WHEN n.tags_json IS NOT NULL
+                 THEN CAST(n.tags_json AS VARCHAR[])
                  ELSE ARRAY[]::VARCHAR[]
             END
         ) AS tag(value)
-    GROUP BY t.datasource, t.name
+    GROUP BY n.datasource, n.unique_id
 ),
 
 tables AS (
     SELECT
         'table' AS entry_type,
-        t.datasource,
-        t.schema_name,
-        t.name AS table_name,
-        t.title AS table_title,
+        n.datasource,
+        n.schema_name,
+        n.name AS table_name,
+        n.title AS table_title,
         NULL::VARCHAR AS column_name,
-        t.description,
-        COALESCE(REPLACE(t.name, '_', ' '), '') || ' ' ||
-            COALESCE(t.title, '') || ' ' ||
-            COALESCE(t.description, '') || ' ' ||
+        n.description,
+        COALESCE(REPLACE(n.name, '_', ' '), '') || ' ' ||
+            COALESCE(n.title, '') || ' ' ||
+            COALESCE(n.description, '') || ' ' ||
             COALESCE(ta.tags_text, '') AS search_text,
-        '/datasets/' || t.datasource || '/' || t.schema_name || '/' || t.name AS href
-    FROM {{ ref('mart_tables') }} t
-    LEFT JOIN tags_agg ta ON t.datasource = ta.datasource AND t.name = ta.name
+        '/datasets/' || n.datasource || '/' || n.schema_name || '/' || n.name AS href
+    FROM published_models n
+    LEFT JOIN tags_agg ta ON n.datasource = ta.datasource AND n.unique_id = ta.unique_id
 ),
 
 columns AS (
     SELECT
         'column' AS entry_type,
         c.datasource,
-        t.schema_name,
-        c.table_name,
-        t.title AS table_title,
+        n.schema_name,
+        n.name AS table_name,
+        n.title AS table_title,
         c.column_name,
         c.description,
         COALESCE(REPLACE(c.column_name, '_', ' '), '') || ' ' ||
             COALESCE(c.title, '') || ' ' ||
             COALESCE(c.description, '') || ' ' ||
-            COALESCE(REPLACE(c.table_name, '_', ' '), '') AS search_text,
-        '/datasets/' || c.datasource || '/' || t.schema_name || '/' || c.table_name AS href
+            COALESCE(REPLACE(n.name, '_', ' '), '') AS search_text,
+        '/datasets/' || c.datasource || '/' || n.schema_name || '/' || n.name AS href
     FROM {{ ref('mart_columns') }} c
-    LEFT JOIN {{ ref('mart_tables') }} t
-        ON c.datasource = t.datasource AND c.table_name = t.name
+    JOIN published_models n
+        ON c.datasource = n.datasource AND c.unique_id = n.unique_id
 )
 
 SELECT * FROM tables

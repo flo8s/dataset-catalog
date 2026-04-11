@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: mart_datasets
-    description: データセット一覧
+    description: データセット一覧（fdl.toml + manifest.metadata）
     access: public
     config:
       contract:
@@ -36,6 +36,27 @@ models:
       - name: tags_json
         description: タグ（JSON 配列）
         data_type: JSON
+      - name: license
+        description: ライセンス
+        data_type: VARCHAR
+      - name: license_url
+        description: ライセンス URL
+        data_type: VARCHAR
+      - name: source_url
+        description: データソース URL
+        data_type: VARCHAR
+      - name: schemas_json
+        description: スキーマごとのメタデータ (JSON)
+        data_type: JSON
+      - name: dbt_version
+        description: dbt バージョン (manifest.metadata)
+        data_type: VARCHAR
+      - name: dbt_generated_at
+        description: manifest.json の生成時刻
+        data_type: VARCHAR
+      - name: dbt_invocation_id
+        description: dbt invocation ID
+        data_type: VARCHAR
       - name: readme
         description: データセットの説明（Markdown）
         data_type: VARCHAR
@@ -61,43 +82,58 @@ models:
         description: スキーマのタイトル
         data_type: VARCHAR
 
-  - name: mart_tables
-    description: テーブル・ビュー一覧
+  - name: mart_nodes
+    description: dbt nodes 一覧（model/test/seed/snapshot 全 resource_type）
     access: public
     config:
       contract:
         enforced: true
       meta:
-        title: "テーブル一覧"
+        title: "dbt ノード一覧"
         tags: ["カタログ"]
         published: true
     columns:
       - name: datasource
         description: データセット識別子
         data_type: VARCHAR
-      - name: node_id
-        description: dbt ノード ID
+      - name: unique_id
+        description: dbt ノード一意 ID (例 model.e_stat.small_area)
         data_type: VARCHAR
-      - name: node_index
-        description: manifest.json 内の出現順序
-        data_type: INTEGER
+      - name: resource_type
+        description: リソース種別 (model/test/seed/snapshot/operation)
+        data_type: VARCHAR
       - name: name
-        description: テーブル名
+        description: ノード名
         data_type: VARCHAR
       - name: schema_name
         description: スキーマ名
         data_type: VARCHAR
+      - name: database
+        description: データベース名
+        data_type: VARCHAR
+      - name: alias
+        description: エイリアス
+        data_type: VARCHAR
       - name: description
-        description: テーブルの説明
+        description: ノードの説明
         data_type: VARCHAR
       - name: materialized
-        description: マテリアライゼーション種別（table/view/incremental）
+        description: マテリアライゼーション (table/view/incremental/ephemeral)
+        data_type: VARCHAR
+      - name: access
+        description: アクセス制御 (protected/public/private)
+        data_type: VARCHAR
+      - name: file_path
+        description: ソースファイルパス
         data_type: VARCHAR
       - name: title
-        description: テーブルのタイトル
+        description: meta.title から派生
         data_type: VARCHAR
+      - name: is_published
+        description: meta.published から派生
+        data_type: BOOLEAN
       - name: license
-        description: ライセンス
+        description: ライセンス (3段階フォールバック済み)
         data_type: VARCHAR
       - name: license_url
         description: ライセンス URL
@@ -105,18 +141,33 @@ models:
       - name: source_url
         description: データソース URL
         data_type: VARCHAR
-      - name: is_published
-        description: 公開フラグ
-        data_type: BOOLEAN
       - name: tags_json
-        description: タグ（JSON 配列）
+        description: タグ (JSON 配列)
         data_type: JSON
-      - name: sql
+      - name: meta_json
+        description: meta dict 全体 (raw)
+        data_type: JSON
+      - name: config_json
+        description: config dict 全体 (raw)
+        data_type: JSON
+      - name: depends_on_json
+        description: 依存関係 {nodes, macros} (raw)
+        data_type: JSON
+      - name: refs_json
+        description: ref() リスト (raw)
+        data_type: JSON
+      - name: sources_json
+        description: source() リスト (raw)
+        data_type: JSON
+      - name: fqn_json
+        description: 完全修飾名 (raw)
+        data_type: JSON
+      - name: compiled_code
         description: コンパイル済み SQL
         data_type: VARCHAR
-      - name: file_path
-        description: モデルのファイルパス
-        data_type: VARCHAR
+      - name: node_index
+        description: manifest 内の出現順序
+        data_type: INTEGER
 
   - name: mart_columns
     description: カラム定義一覧
@@ -132,30 +183,201 @@ models:
       - name: datasource
         description: データセット識別子
         data_type: VARCHAR
-      - name: node_id
-        description: dbt ノード ID
+      - name: unique_id
+        description: dbt ノード unique_id (mart_nodes への FK)
         data_type: VARCHAR
       - name: table_name
-        description: テーブル名
+        description: 所属テーブル名 (unique_id から派生、検索用)
         data_type: VARCHAR
       - name: column_name
         description: カラム名
         data_type: VARCHAR
       - name: column_index
-        description: カラムの定義順序
+        description: カラムの定義順序 (catalog.json から)
         data_type: INTEGER
       - name: title
-        description: カラムの論理名
+        description: カラムの論理名 (meta.title)
         data_type: VARCHAR
       - name: description
         description: カラムの説明
         data_type: VARCHAR
       - name: data_type
-        description: データ型
+        description: データ型 (catalog > manifest の優先順位)
         data_type: VARCHAR
+      - name: meta_json
+        description: meta dict 全体 (raw)
+        data_type: JSON
+      - name: constraints_json
+        description: 制約情報 (raw)
+        data_type: JSON
       - name: nullable
         description: NULL許容フラグ
         data_type: BOOLEAN
+
+  - name: mart_sources
+    description: dbt sources 一覧
+    access: public
+    config:
+      contract:
+        enforced: true
+      meta:
+        title: "ソース一覧"
+        tags: ["カタログ"]
+        published: true
+    columns:
+      - name: datasource
+        description: データセット識別子
+        data_type: VARCHAR
+      - name: unique_id
+        description: dbt source 一意 ID
+        data_type: VARCHAR
+      - name: source_name
+        description: source 名
+        data_type: VARCHAR
+      - name: name
+        description: テーブル名
+        data_type: VARCHAR
+      - name: schema_name
+        description: スキーマ名
+        data_type: VARCHAR
+      - name: database
+        description: データベース名
+        data_type: VARCHAR
+      - name: description
+        description: ソースの説明
+        data_type: VARCHAR
+      - name: identifier
+        description: 物理識別子
+        data_type: VARCHAR
+      - name: loader
+        description: ローダー
+        data_type: VARCHAR
+      - name: meta_json
+        description: meta dict 全体 (raw)
+        data_type: JSON
+      - name: tags_json
+        description: タグ (JSON 配列)
+        data_type: JSON
+
+  - name: mart_semantic_models
+    description: dbt semantic_models 一覧 (raw JSON 保持)
+    access: public
+    config:
+      contract:
+        enforced: true
+      meta:
+        title: "セマンティックモデル一覧"
+        tags: ["カタログ"]
+        published: true
+    columns:
+      - name: datasource
+        data_type: VARCHAR
+      - name: unique_id
+        data_type: VARCHAR
+      - name: name
+        data_type: VARCHAR
+      - name: table_unique_id
+        description: 対応する mart_nodes.unique_id
+        data_type: VARCHAR
+      - name: alias
+        data_type: VARCHAR
+      - name: schema_name
+        data_type: VARCHAR
+      - name: database
+        data_type: VARCHAR
+      - name: description
+        data_type: VARCHAR
+      - name: entities_json
+        description: entities 配列 (raw)
+        data_type: JSON
+      - name: dimensions_json
+        description: dimensions 配列 (raw)
+        data_type: JSON
+      - name: measures_json
+        description: measures 配列 (raw)
+        data_type: JSON
+
+  - name: mart_lineage_edges
+    description: dbt 依存関係エッジ (manifest.parent_map)
+    access: public
+    config:
+      contract:
+        enforced: true
+      meta:
+        title: "リネージュエッジ"
+        tags: ["カタログ"]
+        published: true
+    columns:
+      - name: datasource
+        data_type: VARCHAR
+      - name: child_unique_id
+        data_type: VARCHAR
+      - name: parent_unique_id
+        data_type: VARCHAR
+
+  - name: mart_column_semantics
+    description: カラムのセマンティック役割 (entities/dimensions/measures の UNION)
+    access: public
+    config:
+      contract:
+        enforced: true
+      meta:
+        title: "カラムセマンティクス"
+        tags: ["カタログ"]
+        published: true
+    columns:
+      - name: datasource
+        data_type: VARCHAR
+      - name: unique_id
+        description: mart_nodes への FK
+        data_type: VARCHAR
+      - name: column_name
+        description: 対応するカラム名 (expr が単純識別子の場合のみ、NULL 可)
+        data_type: VARCHAR
+      - name: semantic_role
+        description: 役割 (entity/dimension/measure)
+        data_type: VARCHAR
+      - name: semantic_name
+        description: セマンティック名
+        data_type: VARCHAR
+      - name: semantic_type
+        description: entity type または dimension type
+        data_type: VARCHAR
+      - name: agg
+        description: measure の集計関数
+        data_type: VARCHAR
+      - name: description
+        data_type: VARCHAR
+
+  - name: mart_entity_links
+    description: semantic entities の self-join (クロスデータセット結合グラフ)
+    access: public
+    config:
+      contract:
+        enforced: true
+      meta:
+        title: "エンティティリンク"
+        tags: ["カタログ"]
+        published: true
+    columns:
+      - name: from_datasource
+        data_type: VARCHAR
+      - name: from_unique_id
+        data_type: VARCHAR
+      - name: entity_name
+        data_type: VARCHAR
+      - name: from_type
+        data_type: VARCHAR
+      - name: from_column
+        data_type: VARCHAR
+      - name: to_datasource
+        data_type: VARCHAR
+      - name: to_unique_id
+        data_type: VARCHAR
+      - name: to_type
+        data_type: VARCHAR
+      - name: to_column
+        data_type: VARCHAR
 
   - name: mart_search_entries
     description: 全文検索用エントリ
@@ -169,39 +391,10 @@ models:
       - name: entry_type
         description: エントリ種別（table/column）
       - name: datasource
-        description: データセット識別子
       - name: schema_name
-        description: スキーマ名
       - name: table_name
-        description: テーブル名
       - name: table_title
-        description: テーブルタイトル
       - name: column_name
-        description: カラム名
       - name: description
-        description: 説明文
       - name: search_text
-        description: 検索対象テキスト（生テキスト連結）
       - name: href
-        description: リンクパス
-
-  - name: mart_dependencies
-    description: データセット間の依存関係
-    access: public
-    config:
-      contract:
-        enforced: true
-      meta:
-        title: "データセット依存関係"
-        tags: ["カタログ"]
-        published: true
-    columns:
-      - name: datasource
-        description: データセット識別子
-        data_type: VARCHAR
-      - name: alias
-        description: 依存先のエイリアス
-        data_type: VARCHAR
-      - name: ducklake_url
-        description: 依存先の DuckLake URL
-        data_type: VARCHAR
