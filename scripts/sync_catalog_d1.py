@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
 
 import duckdb
 
@@ -262,6 +263,21 @@ def execute_d1(sql: str) -> None:
     client = Cloudflare(api_token=os.environ["CF_API_TOKEN"])
     account_id = os.environ["CF_ACCOUNT_ID"]
     database_id = os.environ["CF_D1_DATABASE_ID"]
+
+    schema_path = Path(__file__).parent / "d1_schema.sql"
+    schema_sql = schema_path.read_text(encoding="utf-8")
+    schema_stmts = [
+        s.strip()
+        for s in schema_sql.split(";")
+        if s.strip() and not s.strip().startswith("--")
+    ]
+    bootstrap_sql = "; ".join(schema_stmts) + ";"
+    print(f"  applying schema ({len(schema_stmts)} statements)...")
+    client.d1.database.query(
+        database_id=database_id,
+        account_id=account_id,
+        sql=bootstrap_sql,
+    )
 
     stmts = [s.strip() for s in sql.split(";") if s.strip() and not s.strip().startswith("--")]
     chunk_size = 200
