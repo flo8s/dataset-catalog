@@ -38,18 +38,20 @@ def load_datasources() -> list[dict]:
 
 
 def detect_storage_base() -> tuple[str, str, bool]:
-    """Detect storage base from FDL_STORAGE environment variable.
+    """Detect storage base from FDL_DATA_URL environment variable.
 
     Returns (base_url, target_name, is_s3).
-    base_url: parent of FDL_STORAGE (e.g. ~/.local/share/fdl or s3://bucket).
+    FDL_DATA_URL points at ``<base>/catalog/ducklake.duckdb.files/``; stripping
+    the datasource segment and trailing ``ducklake.duckdb.files`` yields the
+    base shared by every dataset.
     """
-    storage = os.environ.get("FDL_STORAGE", "")
-    if storage.startswith("s3://"):
-        # s3://bucket/catalog → s3://bucket
-        base = storage.rstrip("/").rsplit("/", 1)[0]
-        return base, "default", True
-    elif storage:
-        base = str(Path(storage).parent)
+    data_url = os.environ.get("FDL_DATA_URL", "")
+    if data_url.startswith("s3://"):
+        bucket = os.environ["FDL_DATA_BUCKET"]
+        return f"s3://{bucket}", "default", True
+    elif data_url:
+        # /abs/.../catalog/ducklake.duckdb.files/ → /abs/...
+        base = str(Path(data_url).parent.parent)
         return base, "local", False
     else:
         base = str(Path.home() / ".local" / "share" / "fdl")
