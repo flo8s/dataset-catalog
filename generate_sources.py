@@ -38,24 +38,28 @@ def load_datasources() -> list[dict]:
 
 
 def detect_storage_base() -> tuple[str, str, bool]:
-    """Detect storage base from FDL_DATA_URL environment variable.
+    """Detect the storage base where each dataset's meta.json lives.
 
-    Returns (base_url, target_name, is_s3).
-    FDL_DATA_URL points at ``<base>/catalog/ducklake.duckdb.files/``; stripping
-    the datasource segment and trailing ``ducklake.duckdb.files`` yields the
-    base shared by every dataset.
+    Uses public HTTPS so that dbt running on MotherDuck Pulse can read
+    `<base>/<dataset>/dbt/catalog.json` directly via httpfs (no S3 secret
+    needed). meta.json fetch in `generate_meta_jsons` uses the same HTTPS URL.
+
+    Returns (base_url, target_name, is_s3) — is_s3 is always False now.
     """
-    data_url = os.environ.get("FDL_DATA_URL", "")
-    if data_url.startswith("s3://"):
-        bucket = os.environ["FDL_DATA_BUCKET"]
-        return f"s3://{bucket}", "default", True
-    elif data_url:
-        # /abs/.../catalog/ducklake.duckdb.files/ → /abs/...
-        base = str(Path(data_url).parent.parent)
+    if os.environ.get("QUERIA_S3_BUCKET"):
+        public = os.environ.get("QUERIA_PUBLIC_URL", "https://data.queria.io")
+        return public.rstrip("/"), "default", False
+
+    dev_pub = os.environ.get(
+        "QUERIA_DEV_PUBLIC_URL", "https://pub-0292714ad4094bd0aaf8d36835b0972a.r2.dev"
+    )
+    legacy = os.environ.get("FDL_DATA_URL", "")
+    if legacy.startswith("s3://"):
+        return legacy.rstrip("/"), "default", True
+    if legacy:
+        base = str(Path(legacy).parent.parent)
         return base, "local", False
-    else:
-        base = str(Path.home() / ".local" / "share" / "fdl")
-        return base, "local", False
+    return dev_pub.rstrip("/"), "local", False
 
 
 def s3_get(client, bucket: str, key: str) -> bytes | None:
@@ -69,7 +73,23 @@ def s3_get(client, bucket: str, key: str) -> bytes | None:
 def generate_meta_jsons(
     datasources: list[dict], base_url: str, target_name: str, is_s3: bool
 ) -> None:
-    """Convert fdl.toml → JSON for each datasource."""
+    """Fetch each dataset's meta.json from R2 (or local storage).
+
+    Each dataset publishes its own meta.json via dataset-shared's
+    upload_artifacts.py — built from pyproject.toml [tool.queria].
+
+    During the fdl → MotherDuck transition, datasets that haven't migrated
+    yet still publish fdl.toml only. We fall back to reading fdl.toml and
+    convert it to the meta.json shape inline so the catalog keeps building.
+
+    base_url may be:
+    - https:// public URL (preferred, no auth)
+    - s3:// (legacy, needs boto3)
+    - local path
+    """
+    import urllib.error
+    import urllib.request
+
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
     s3_client = None
@@ -78,51 +98,111 @@ def generate_meta_jsons(
         import boto3
         s3_client = boto3.client(
             "s3",
-            endpoint_url=os.environ["FDL_S3_ENDPOINT"],
-            aws_access_key_id=os.environ["FDL_S3_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["FDL_S3_SECRET_ACCESS_KEY"],
+            endpoint_url=os.environ.get("QUERIA_S3_ENDPOINT") or os.environ["FDL_S3_ENDPOINT"],
+            aws_access_key_id=os.environ.get("QUERIA_S3_ACCESS_KEY_ID")
+            or os.environ["FDL_S3_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ.get("QUERIA_S3_SECRET_ACCESS_KEY")
+            or os.environ["FDL_S3_SECRET_ACCESS_KEY"],
         )
-        s3_bucket = os.environ["FDL_S3_BUCKET"]
+        s3_bucket = base_url.replace("s3://", "")
+
+    is_http = base_url.startswith(("http://", "https://"))
+
+    def _http_get(url: str) -> bytes | None:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "curl/8.0"})
+            with urllib.request.urlopen(req) as resp:
+                return resp.read()
+        except urllib.error.HTTPError:
+            return None
+
+    public_url = base_url if is_http else os.environ.get(
+        "QUERIA_PUBLIC_URL", "https://data.queria.io"
+    )
 
     for ds in datasources:
         name = ds["name"]
 
-        if is_s3:
-            raw = s3_get(s3_client, s3_bucket, f"{name}/fdl.toml")
-            if not raw:
-                print(f"  {name}: fdl.toml not found on S3, skipping")
-                continue
-            config = tomllib.loads(raw.decode())
+        # First try the new format (meta.json published by dataset-shared upload_artifacts.py)
+        data: str | None = None
+        if is_http:
+            raw = _http_get(f"{base_url}/{name}/meta.json")
+            if raw:
+                data = raw.decode()
+        elif is_s3:
+            raw = s3_get(s3_client, s3_bucket, f"{name}/meta.json")
+            if raw:
+                data = raw.decode()
         else:
-            toml_path = Path(base_url) / name / "fdl.toml"
-            if not toml_path.exists():
-                print(f"  {name}: fdl.toml not found, skipping")
-                continue
-            with open(toml_path, "rb") as f:
-                config = tomllib.load(f)
+            meta_path = Path(base_url) / name / "meta.json"
+            if meta_path.exists():
+                data = meta_path.read_text()
 
-        meta = config.get("meta", {})
-        target = config.get("targets", {}).get(target_name, {})
-        public_url = target.get("public_url", "https://data.queria.io")
+        # Fall back to legacy fdl.toml if meta.json hasn't been published yet.
+        if data is None:
+            data = _legacy_fdl_toml_to_meta(
+                name, base_url, public_url, is_s3, is_http, s3_client, s3_bucket
+            )
 
-        out = {
-            "datasource": name,
-            "title": meta.get("title", ""),
-            "description": meta.get("description", ""),
-            "cover": meta.get("cover", ""),
-            "tags": meta.get("tags", []),
-            "repository_url": meta.get("repository_url", ""),
-            "schedule": meta.get("schedule", ""),
-            "license": meta.get("license", ""),
-            "license_url": meta.get("license_url", ""),
-            "source_url": meta.get("source_url", ""),
-            "ducklake_url": f"{public_url}/{name}/ducklake.duckdb",
-            "schemas": meta.get("schemas", {}),
-        }
+        if data is None:
+            print(f"  {name}: no meta.json or fdl.toml found, skipping")
+            continue
 
         out_path = ARTIFACTS_DIR / f"{name}_meta.json"
-        with open(out_path, "w") as f:
-            json.dump(out, f, ensure_ascii=False, indent=2)
+        out_path.write_text(data)
+
+
+def _legacy_fdl_toml_to_meta(
+    name: str,
+    base_url: str,
+    public_url: str,
+    is_s3: bool,
+    is_http: bool,
+    s3_client,
+    s3_bucket: str | None,
+) -> str | None:
+    """Convert legacy fdl.toml to the meta.json layout. Returns JSON string or None."""
+    import urllib.error
+    import urllib.request
+
+    config: dict
+    if is_http:
+        try:
+            req = urllib.request.Request(
+                f"{base_url}/{name}/fdl.toml", headers={"User-Agent": "curl/8.0"}
+            )
+            with urllib.request.urlopen(req) as resp:
+                config = tomllib.loads(resp.read().decode())
+        except urllib.error.HTTPError:
+            return None
+    elif is_s3:
+        raw = s3_get(s3_client, s3_bucket, f"{name}/fdl.toml")
+        if not raw:
+            return None
+        config = tomllib.loads(raw.decode())
+    else:
+        toml_path = Path(base_url) / name / "fdl.toml"
+        if not toml_path.exists():
+            return None
+        with open(toml_path, "rb") as f:
+            config = tomllib.load(f)
+
+    meta = config.get("meta", {})
+    out = {
+        "datasource": name,
+        "title": meta.get("title", ""),
+        "description": meta.get("description", ""),
+        "cover": meta.get("cover", ""),
+        "tags": meta.get("tags", []),
+        "repository_url": meta.get("repository_url", ""),
+        "schedule": meta.get("schedule", ""),
+        "license": meta.get("license", ""),
+        "license_url": meta.get("license_url", ""),
+        "source_url": meta.get("source_url", ""),
+        "ducklake_url": f"{public_url}/{name}/ducklake.duckdb",
+        "schemas": meta.get("schemas", {}),
+    }
+    return json.dumps(out, ensure_ascii=False, indent=2)
 
 
 def generate_raw_sql(name: str, macro: str) -> str:
