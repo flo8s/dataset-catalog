@@ -4,7 +4,9 @@ catalog:
     default:
       type: duckdb
       path: ":memory:"
-      threads: 4
+      # DuckLake への並行スナップショットコミットで snapshot_id が重複し
+      # カタログが破損するため、直列ビルド (threads:1) で書き込む
+      threads: 1
       extensions:
         - httpfs
         - postgres
@@ -23,7 +25,7 @@ catalog:
     local:
       type: duckdb
       path: ":memory:"
-      threads: 4
+      threads: 1
       extensions:
         - httpfs
         - postgres
