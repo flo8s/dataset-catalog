@@ -15,3 +15,5 @@ datasources:
     description: 日本の暦データ
   - name: address_br
     description: アドレス・ベース・レジストリ
+  - name: lg_code
+    description: 全国地方公共団体コード

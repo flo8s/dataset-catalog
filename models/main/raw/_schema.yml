@@ -49,3 +49,9 @@ models:
   description: アドレス・ベース・レジストリ (catalog)
 - name: raw_address_br_meta
   description: アドレス・ベース・レジストリ (メタデータ)
+- name: raw_lg_code_manifest
+  description: 全国地方公共団体コード (manifest)
+- name: raw_lg_code_catalog
+  description: 全国地方公共団体コード (catalog)
+- name: raw_lg_code_meta
+  description: 全国地方公共団体コード (メタデータ)
