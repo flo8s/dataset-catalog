@@ -18,3 +18,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_address_br_catalog') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_lg_code_catalog') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_houjin_bangou_catalog') }}

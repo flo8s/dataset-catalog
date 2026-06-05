@@ -18,8 +18,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # threads:1 の直列ビルド(27 raw + stg/mart を順次)が15分を超えるため余裕を持たせる
-    timeout-minutes: 25
+    # threads:1 の直列ビルド(30 raw + stg/mart を順次)が25分を超えるため余裕を持たせる
+    timeout-minutes: 35
     env:
       PYTHONUNBUFFERED: "1"
       NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}

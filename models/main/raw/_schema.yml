@@ -55,3 +55,9 @@ models:
   description: 全国地方公共団体コード (catalog)
 - name: raw_lg_code_meta
   description: 全国地方公共団体コード (メタデータ)
+- name: raw_houjin_bangou_manifest
+  description: 国税庁法人番号 (manifest)
+- name: raw_houjin_bangou_catalog
+  description: 国税庁法人番号 (catalog)
+- name: raw_houjin_bangou_meta
+  description: 国税庁法人番号 (メタデータ)

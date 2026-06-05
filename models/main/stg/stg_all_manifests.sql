@@ -18,3 +18,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_address_br_manifest') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_lg_code_manifest') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_houjin_bangou_manifest') }}

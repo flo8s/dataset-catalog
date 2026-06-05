@@ -17,3 +17,5 @@ datasources:
     description: アドレス・ベース・レジストリ
   - name: lg_code
     description: 全国地方公共団体コード
+  - name: houjin_bangou
+    description: 国税庁法人番号
