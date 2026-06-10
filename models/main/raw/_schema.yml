@@ -61,3 +61,9 @@ models:
   description: 国税庁法人番号 (catalog)
 - name: raw_houjin_bangou_meta
   description: 国税庁法人番号 (メタデータ)
+- name: raw_gbizinfo_manifest
+  description: gBizINFO 法人活動情報 (manifest)
+- name: raw_gbizinfo_catalog
+  description: gBizINFO 法人活動情報 (catalog)
+- name: raw_gbizinfo_meta
+  description: gBizINFO 法人活動情報 (メタデータ)
