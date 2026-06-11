@@ -3,19 +3,7 @@ name = "dataset-catalog"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "frozen-ducklake>=0.10.3,<0.11",
     "dbt-core>=1.11.2",
     "dbt-duckdb>=1.10.0",
-    "duckdb>=1.5.0,<1.5.3",
-    "boto3>=1.35",
-    "pyyaml>=6.0",
 ]
-
-[tool.queria]
-name = "catalog"
-title = "Queriaカタログ"
-description = "Queriaで公開している全データセット・テーブルのメタデータ"
-tags = ["カタログ", "Queria"]
-repository_url = "https://github.com/flo8s/dataset-catalog"
-
-[tool.queria.schemas.main]
-title = "メイン"
