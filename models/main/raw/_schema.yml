@@ -67,3 +67,9 @@ models:
   description: gBizINFO 法人活動情報 (catalog)
 - name: raw_gbizinfo_meta
   description: gBizINFO 法人活動情報 (メタデータ)
+- name: raw_jma_manifest
+  description: 気象庁の気象データ (manifest)
+- name: raw_jma_catalog
+  description: 気象庁の気象データ (catalog)
+- name: raw_jma_meta
+  description: 気象庁の気象データ (メタデータ)
