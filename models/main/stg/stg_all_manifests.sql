@@ -24,3 +24,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_gbizinfo_manifest') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_jma_manifest') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_edinet_manifest') }}

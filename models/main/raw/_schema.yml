@@ -73,3 +73,9 @@ models:
   description: 気象庁の気象データ (catalog)
 - name: raw_jma_meta
   description: 気象庁の気象データ (メタデータ)
+- name: raw_edinet_manifest
+  description: EDINET 書類一覧 (manifest)
+- name: raw_edinet_catalog
+  description: EDINET 書類一覧 (catalog)
+- name: raw_edinet_meta
+  description: EDINET 書類一覧 (メタデータ)

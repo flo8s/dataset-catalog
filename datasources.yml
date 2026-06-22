@@ -23,3 +23,5 @@ datasources:
     description: gBizINFO 法人活動情報
   - name: jma
     description: 気象庁の気象データ
+  - name: edinet
+    description: EDINET 書類一覧
