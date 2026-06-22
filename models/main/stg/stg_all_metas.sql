@@ -22,3 +22,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_houjin_bangou_meta') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_gbizinfo_meta') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_jma_meta') }}

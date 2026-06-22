@@ -21,3 +21,5 @@ datasources:
     description: 国税庁法人番号
   - name: gbizinfo
     description: gBizINFO 法人活動情報
+  - name: jma
+    description: 気象庁の気象データ
