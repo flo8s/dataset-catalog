@@ -25,3 +25,5 @@ datasources:
     description: 気象庁の気象データ
   - name: edinet
     description: EDINET 書類一覧
+  - name: meti
+    description: 経済産業省 活動指数
