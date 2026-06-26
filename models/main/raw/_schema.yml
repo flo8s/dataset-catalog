@@ -79,3 +79,9 @@ models:
   description: EDINET 書類一覧 (catalog)
 - name: raw_edinet_meta
   description: EDINET 書類一覧 (メタデータ)
+- name: raw_meti_manifest
+  description: 経済産業省 活動指数 (manifest)
+- name: raw_meti_catalog
+  description: 経済産業省 活動指数 (catalog)
+- name: raw_meti_meta
+  description: 経済産業省 活動指数 (メタデータ)

@@ -26,3 +26,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_jma_meta') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_edinet_meta') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_meti_meta') }}
