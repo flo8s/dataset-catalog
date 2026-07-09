@@ -79,3 +79,9 @@ models:
   description: EDINET 書類一覧 (catalog)
 - name: raw_edinet_meta
   description: EDINET 書類一覧 (メタデータ)
+- name: raw_p_portal_manifest
+  description: 調達ポータル 落札実績 (manifest)
+- name: raw_p_portal_catalog
+  description: 調達ポータル 落札実績 (catalog)
+- name: raw_p_portal_meta
+  description: 調達ポータル 落札実績 (メタデータ)

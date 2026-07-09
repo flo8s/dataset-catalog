@@ -26,3 +26,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_jma_manifest') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_edinet_manifest') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_p_portal_manifest') }}
