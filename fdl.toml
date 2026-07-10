@@ -16,7 +16,7 @@ public_url = "http://localhost:4001"
 title = "Queriaカタログ"
 description = "Queriaで公開している全データセット・テーブルのメタデータ"
 tags = ['カタログ', 'Queria']
-repository_url = "https://github.com/flo8s/dataset-catalog"
+repository_url = "https://github.com/queria-io/dataset-catalog"
 
 [meta.schemas]
 main.title = "メイン"
