@@ -18,10 +18,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # カタログの DuckDB<->SQLite 変換だけで 13 分超かかる (成功時の全体所要は 15 分強)。
-    # 肥大カタログの初回 snapshot expire は重いため一時的に 60 分に延長している。
-    # auto-expire でカタログが縮小したら 30 分に戻すこと。
-    timeout-minutes: 60
+    # push 時の auto-expire (frozen-ducklake 0.11+) が古い snapshot を刈るため
+    # カタログは小さく保たれ、全体所要は 15 分強。30 分あれば十分。
+    timeout-minutes: 30
     env:
       PYTHONUNBUFFERED: "1"
       FDL_S3_ENDPOINT: https://${{ secrets.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com
