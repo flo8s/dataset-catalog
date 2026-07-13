@@ -30,3 +30,5 @@ UNION ALL
 SELECT * FROM {{ ref('raw_mediaarts_db_catalog') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_mhlw_catalog') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_gsi_catalog') }}

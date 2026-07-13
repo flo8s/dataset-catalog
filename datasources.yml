@@ -29,3 +29,5 @@ datasources:
     description: メディア芸術データベース
   - name: mhlw
     description: 厚生労働省
+  - name: gsi
+    description: 国土地理院 指定緊急避難場所・指定避難所データ

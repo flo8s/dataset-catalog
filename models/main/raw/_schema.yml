@@ -91,3 +91,9 @@ models:
   description: 厚生労働省 (catalog)
 - name: raw_mhlw_meta
   description: 厚生労働省 (メタデータ)
+- name: raw_gsi_manifest
+  description: 国土地理院 指定緊急避難場所・指定避難所データ (manifest)
+- name: raw_gsi_catalog
+  description: 国土地理院 指定緊急避難場所・指定避難所データ (catalog)
+- name: raw_gsi_meta
+  description: 国土地理院 指定緊急避難場所・指定避難所データ (メタデータ)
