@@ -34,3 +34,9 @@ UNION ALL
 SELECT * FROM {{ ref('raw_gsi_manifest') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_metro_tokyo_manifest') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_npa_manifest') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_meti_manifest') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_p_portal_manifest') }}

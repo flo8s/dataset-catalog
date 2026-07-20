@@ -103,3 +103,21 @@ models:
   description: 東京都オープンデータカタログ (catalog)
 - name: raw_metro_tokyo_meta
   description: 東京都オープンデータカタログ (メタデータ)
+- name: raw_npa_manifest
+  description: 警察庁・都道府県警察 犯罪・交通事故統計 (manifest)
+- name: raw_npa_catalog
+  description: 警察庁・都道府県警察 犯罪・交通事故統計 (catalog)
+- name: raw_npa_meta
+  description: 警察庁・都道府県警察 犯罪・交通事故統計 (メタデータ)
+- name: raw_meti_manifest
+  description: 経済産業省 活動指数 (manifest)
+- name: raw_meti_catalog
+  description: 経済産業省 活動指数 (catalog)
+- name: raw_meti_meta
+  description: 経済産業省 活動指数 (メタデータ)
+- name: raw_p_portal_manifest
+  description: 調達ポータル 落札実績 (manifest)
+- name: raw_p_portal_catalog
+  description: 調達ポータル 落札実績 (catalog)
+- name: raw_p_portal_meta
+  description: 調達ポータル 落札実績 (メタデータ)

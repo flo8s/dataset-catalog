@@ -33,3 +33,9 @@ datasources:
     description: 国土地理院 指定緊急避難場所・指定避難所データ
   - name: metro_tokyo
     description: 東京都オープンデータカタログ
+  - name: npa
+    description: 警察庁・都道府県警察 犯罪・交通事故統計
+  - name: meti
+    description: 経済産業省 活動指数
+  - name: p_portal
+    description: 調達ポータル 落札実績

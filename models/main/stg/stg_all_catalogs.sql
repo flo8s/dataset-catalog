@@ -34,3 +34,9 @@ UNION ALL
 SELECT * FROM {{ ref('raw_gsi_catalog') }}
 UNION ALL
 SELECT * FROM {{ ref('raw_metro_tokyo_catalog') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_npa_catalog') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_meti_catalog') }}
+UNION ALL
+SELECT * FROM {{ ref('raw_p_portal_catalog') }}
